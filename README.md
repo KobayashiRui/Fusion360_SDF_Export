@@ -12,4 +12,4 @@ Fusion360からSDFファイル及STLファイルを生成するスクリプト�
 バグや追加機能,説明についてはissueか[Twitterアカウント](https://twitter.com/3pLiendefamille)にご連絡ください
 
 ## 機能追加予定
-[ ] 各ジョイントへの対応
+- [ ] 各ジョイントへの対応
