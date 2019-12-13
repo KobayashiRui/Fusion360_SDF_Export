@@ -156,8 +156,8 @@ class URDF():
                 #childに原点を設定する
                 self.Link_List[_joint_buf["child"]]["origin_pos"] = cm2m(_joint.geometryOrOriginOne.origin.asArray())
 
-                _parent_link_matrix = self.Link_List[_joint_buf["parent"]]["link_matrix"]
-                _parent_link_rotation_matrix = inv_matrix(get_rotation_matrix(_parent_link_matrix)) #回転行列
+                #_parent_link_matrix = self.Link_List[_joint_buf["parent"]]["link_matrix"]
+                #_parent_link_rotation_matrix = inv_matrix(get_rotation_matrix(_parent_link_matrix)) #回転行列
                 _joint_rpy = [0,0,0] #rotation_matrix2roll_pitch_yaw(_parent_link_rotation_matrix)
 
                 _joint_buf["pose"] = extend_xyz_rpy(_joint_xyz, _joint_rpy)
@@ -222,12 +222,12 @@ class URDF():
 
             collision_el = Et.SubElement(link_el, "collision", {"name":_link["name"]+"_collision"})
             collision_origin_el = Et.SubElement(collision_el, "origin", {"rpy":(' '.join(list(map(str,_link["pose"][3:])))), "xyz":(' '.join(list(map(str,_link["pose"][:3]))))})
-            collision_geometry_el = Et.SubElement(collision_el, "geometyr")
+            collision_geometry_el = Et.SubElement(collision_el, "geometry")
             collision_geometry_mesh_el = Et.SubElement(collision_geometry_el, "mesh", {"filename":"package://" + _package_name + "/meshes/" + _link["name"].split(":")[0].replace(' ', '_') + ".stl", "scale":"1.0 1.0 1.0"})
 
             visual_el = Et.SubElement(link_el, "visual", {"name":_link["name"] + "_visual"})
             visual_origin_el = Et.SubElement(visual_el, "origin", {"rpy":(' '.join(list(map(str,_link["pose"][3:])))), "xyz":(' '.join(list(map(str,_link["pose"][:3]))))})
-            visual_geometry_el = Et.SubElement(visual_el, "geometyr")
+            visual_geometry_el = Et.SubElement(visual_el, "geometry")
             visual_geometry_mesh_el = Et.SubElement(visual_geometry_el, "mesh", {"filename":"package://" + _package_name + "/meshes/" + _link["name"].split(":")[0].replace(' ', '_') + ".stl", "scale":"1.0 1.0 1.0"})
         
         #Make Joint XML

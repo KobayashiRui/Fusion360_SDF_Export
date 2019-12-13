@@ -77,7 +77,6 @@ def extend_xyz_rpy(xyz,rpy):
     return [xyz[0],xyz[1],xyz[2],rpy[0],rpy[1],rpy[2]]
 
 
-#TODO Link_List & Joint_List→辞書型にする
 class SDF():
     def __init__(self,app):#rootComp.occurrences,rootComp.joints
         self.ui  = app.userInterface
@@ -86,8 +85,8 @@ class SDF():
         self.occurrence_list = self.design.rootComponent.occurrences
         self.joint_list = self.design.rootComponent.joints
         self.Robot_Name = self.design.rootComponent.name.replace(' ', '_')
-        self.Link_List = []
-        self.Joint_List=[]
+        self.Link_List = {}
+        self.Joint_List={}
         self.base_path = False
         self.robot_path = False
 
@@ -108,6 +107,8 @@ class SDF():
             _pose_rpy = rotation_matrix2roll_pitch_yaw(_rotation_matrix)
             _link_buf["pose"] = extend_xyz_rpy(_pose_xyz,_pose_rpy)
 
+            _link_buf["link_matrix"] = _link_matrix
+
             #質量,イナーシャの取得
             (_returnValue, _xx, _yy, _zz, _xy, _yz, _xz) = _occurrence.physicalProperties.getXYZMomentsOfInertia()
             _mass = _occurrence.physicalProperties.mass #質量の取得
@@ -122,7 +123,9 @@ class SDF():
             _com_xyz = matrix_multiply(_inv_rotation_matrix,_com_vector)
             _com_rpy = rotation_matrix2roll_pitch_yaw(_inv_rotation_matrix)
             _link_buf["com"] = extend_xyz_rpy(_com_xyz, _com_rpy)
-            self.Link_List.append(_link_buf)
+            #self.Link_List.append(_link_buf)
+            self.Link_List[_link_buf["name"]] = _link_buf
+            
     
     def Get_Joint_Data(self):
         for i in range(self.joint_list.count):
@@ -135,7 +138,8 @@ class SDF():
                 _joint_buf["child"] = _joint.occurrenceOne.fullPathName.split("+")[0]
                 _joint_buf["parent"] = _joint.occurrenceTwo.fullPathName.split("+")[0]
 
-                _child_link_matrix = self.Search_Child(_joint_buf["child"])
+                #_child_link_matrix = self.Search_Child(_joint_buf["child"])
+                _child_link_matrix = self.Link_List[_joint_buf["child"]]["link_matrix"]
                 _child_xyz_world =  get_joint_link_vector(_joint.geometryOrOriginOne.origin.asArray(), get_vector(_child_link_matrix))  #平行移動
                 _child_link_rotation_matrix = inv_matrix(get_rotation_matrix(_child_link_matrix)) #回転行列
                 _child_xyz = matrix_multiply(_child_link_rotation_matrix, _child_xyz_world)
@@ -144,7 +148,9 @@ class SDF():
 
                 #回転軸
                 _joint_buf["axis"] = [axis_data for axis_data in _joint.jointMotion.rotationAxisVector.asArray()]
-                self.Joint_List.append(_joint_buf)
+                #self.Joint_List.append(_joint_buf)
+                self.Joint_List[_joint_buf["name"]] = _joint_buf
+
 
 
     def Search_Child(self, child_name):
@@ -167,7 +173,7 @@ class SDF():
         model_pose_el = Et.SubElement(model_el, "pose")
         model_pose_el.text = "0 0 0 0 0 0"
 
-        for _link in self.Link_List:
+        for _link in self.Link_List.values():
             link_el = Et.SubElement(model_el, "link", {"name": _link["name"]})
 
             link_pose_el = Et.SubElement(link_el, "pose")
@@ -205,7 +211,7 @@ class SDF():
             visual_mesh_uri_el.text = "model://" + self.Robot_Name + "/meshes/" + _link["name"].split(":")[0] + ".stl"
 
 
-        for _joint in self.Joint_List:
+        for _joint in self.Joint_List.values():
             joint_el = Et.SubElement(model_el, "joint", {"type":"revolute", "name":_joint["name"]})
 
             joint_pose_el = Et.SubElement(joint_el, "pose")
