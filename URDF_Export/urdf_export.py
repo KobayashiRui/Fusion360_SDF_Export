@@ -1,7 +1,9 @@
-#sdf出力
+#urdf出力
 import adsk.core, adsk.fusion, traceback
 import math
 import os
+import xml.etree.ElementTree as Et
+import xml.dom.minidom as md
 
 #4x4の同次変換行列から平行移動vectorを取得する&cmをmに変換
 def get_vector(matrix):
@@ -207,79 +209,53 @@ class URDF():
         #os.mkdir(_robot_path) # todo ファイルがあるか確認する
         os.makedirs(self.robot_path, exist_ok=True)#絶対パスでないとだめ?
 
-        with open(self.robot_path + "/model.urdf", mode="w") as f:
-            f.write("<?xml version='1.0'?>\n")
-            f.write("<robot name='" + self.Robot_Name + "'>\n")
+        #Make XML
+        root = Et.Element("robot",{"name":self.Robot_Name})
 
-        #linkデータの書き込み
-        with open(self.robot_path +"/model.urdf", mode="a") as f:
-            for _link in self.Link_List.values():
-                f.write("<link name='" + _link["name"] + "'>\n")
+        #Make Link XML
+        for _link in self.Link_List.values():
+            link_el = Et.SubElement(root, "link", {"name":_link["name"]})
 
-                f.write("<inertial>\n")
-                f.write("<mass value='" + str(_link["mass"]) + "'/>\n")
-                f.write("<origin rpy='" + (' '.join(list(map(str,_link["com"][3:])))) 
-                            + "' xyz='" + (' '.join(list(map(str,_link["com"][:3]))))
-                            + "'/>\n") 
-                f.write("<inertia ixx='" + str(_link["inertia"][0]) 
-                             + "' ixy='" + str(_link["inertia"][1]) 
-                             + "' ixz='" + str(_link["inertia"][2])
-                             + "' iyy='" + str(_link["inertia"][3])
-                             + "' iyz='" + str(_link["inertia"][4])
-                             + "' izz='" + str(_link["inertia"][5])
-                             + "'/>\n")
-                f.write("</inertial>\n")
+            inertial_el = Et.SubElement(link_el, "inertial")
+            inertial_mass_el = Et.SubElement(inertial_el, "mass", {"value":str(_link["mass"])})
+            inertial_origin_el = Et.SubElement(inertial_el, "origin", {"rpy":(' '.join(list(map(str,_link["com"][3:])))), "xyz":(' '.join(list(map(str,_link["com"][:3])))) })
+            inertial_inertia_el = Et.SubElement(inertial_el, "inertia", {"ixx":str(_link["inertia"][0]), "ixy":str(_link["inertia"][1]), "ixz":str(_link["inertia"][2]), "iyy":str(_link["inertia"][3]), "iyz":str(_link["inertia"][4]), "izz":str(_link["inertia"][5])})
 
-                f.write("<collision name='" + _link["name"] + "_collision'>\n" )
-                f.write("<origin rpy='" + (' '.join(list(map(str,_link["pose"][3:]))))
-                            + "' xyz='" + (' '.join(list(map(str,_link["pose"][:3]))))
-                            + "'/>\n")
-                f.write("<geometry>\n")
-                f.write("<mesh filename='package://" + _package_name + "/meshes/" 
-                       + _link["name"].split(":")[0].replace(' ', '_') + ".stl" 
-                       + "' scale='1.0 1.0 1.0' />\n")
-                f.write("</geometry>\n")
-                f.write("</collision>\n")
+            collision_el = Et.SubElement(link_el, "collision", {"name":_link["name"]+"_collision"})
+            collision_origin_el = Et.SubElement(collision_el, "origin", {"rpy":(' '.join(list(map(str,_link["pose"][3:])))), "xyz":(' '.join(list(map(str,_link["pose"][:3]))))})
+            collision_geometry_el = Et.SubElement(collision_el, "geometyr")
+            collision_geometry_mesh_el = Et.SubElement(collision_geometry_el, "mesh", {"filename":"package://" + _package_name + "/meshes/" + _link["name"].split(":")[0].replace(' ', '_') + ".stl", "scale":"1.0 1.0 1.0"})
 
-                f.write("<visual name='" + _link["name"] + "_visual'>\n" )
-                f.write("<origin rpy='" + (' '.join(list(map(str,_link["pose"][3:]))))
-                            + "' xyz='" + (' '.join(list(map(str,_link["pose"][:3]))))
-                            + "'/>\n")
-                f.write("<geometry>\n")
-                f.write("<mesh filename='package://" + _package_name + "/meshes/" 
-                       + _link["name"].split(":")[0].replace(' ', '_') + ".stl" 
-                       + "' scale='1.0 1.0 1.0' />\n")
-                f.write("</geometry>\n")
-                f.write("</visual>\n")
-                f.write("</link>\n")
+            visual_el = Et.SubElement(link_el, "visual", {"name":_link["name"] + "_visual"})
+            visual_origin_el = Et.SubElement(visual_el, "origin", {"rpy":(' '.join(list(map(str,_link["pose"][3:])))), "xyz":(' '.join(list(map(str,_link["pose"][:3]))))})
+            visual_geometry_el = Et.SubElement(visual_el, "geometyr")
+            visual_geometry_mesh_el = Et.SubElement(visual_geometry_el, "mesh", {"filename":"package://" + _package_name + "/meshes/" + _link["name"].split(":")[0].replace(' ', '_') + ".stl", "scale":"1.0 1.0 1.0"})
         
-        #jointデータの書き込み
-        with open(self.robot_path +"/model.urdf", mode="a") as f:
-            for _joint in self.Joint_List.values(): 
-                #TODO 複数のジョイントタイプに対応
-                f.write("<joint name='" + _joint["name"] + "' type='" + _joint["type"] + "'>\n")
-                if _joint["type"] == "revolute":
-                    f.write("<parent link='" + _joint["parent"] + "'/>\n")
-                    f.write("<child link='" + _joint["child"] + "'/>\n")
-                    f.write("<origin rpy='" + (' '.join(list(map(str,_joint["pose"][3:]))))
-                                + "' xyz='" + (' '.join(list(map(str,_joint["pose"][:3]))))
-                                + "'/>\n")
-                    f.write("<axis xyz='" + (' '.join(list(map(str,_joint["axis"])))) + "'/>\n" )
-                    f.write("<limit lower='-3.14' upper='3.14' effort='0' velocity='0' />\n")
-                    f.write("</joint>\n")
+        #Make Joint XML
+        for _joint in self.Joint_List.values(): 
+            joint_el = Et.SubElement(root, "joint", {"name":_joint["name"], "type":_joint["type"]})
+            if _joint["type"] == "revolute":
+                parent_el = Et.SubElement(joint_el, "parent", {"link":_joint["parent"]})
+                child_el = Et.SubElement(joint_el, "child", {"link":_joint["child"]})
+                joint_origin_el = Et.SubElement(joint_el, "origin", {"rpy":(' '.join(list(map(str,_joint["pose"][3:])))), "xyz":(' '.join(list(map(str,_joint["pose"][:3]))))})
+                axis_el = Et.SubElement(joint_el, "axis", {"xyz":(' '.join(list(map(str,_joint["axis"]))))})
+                limit_el = Et.SubElement(joint_el, "limit", {"lower":"-3.14", "upper":"3.14", "effort":"0", "velocity":"0"})
 
-                elif _joint["type"] == "continuous":
-                    f.write("<parent link='" + _joint["parent"] + "'/>\n")
-                    f.write("<child link='" + _joint["child"] + "'/>\n")
-                    f.write("<origin rpy='" + (' '.join(list(map(str,_joint["pose"][3:]))))
-                                + "' xyz='" + (' '.join(list(map(str,_joint["pose"][:3]))))
-                                + "'/>\n")
-                    f.write("<axis xyz='" + (' '.join(list(map(str,_joint["axis"])))) + "'/>\n" )
-                    f.write("</joint>\n")
-
-        with open(self.robot_path +"/model.urdf", mode="a") as f:
-            f.write("</robot>\n")
-
+            elif _joint["type"] == "continuous":
+                parent_el = Et.SubElement(joint_el, "parent", {"link":_joint["parent"]})
+                child_el = Et.SubElement(joint_el, "child", {"link":_joint["child"]})
+                joint_origin_el = Et.SubElement(joint_el, "origin", {"rpy":(' '.join(list(map(str,_joint["pose"][3:])))), "xyz":(' '.join(list(map(str,_joint["pose"][:3]))))})
+                axis_el = Et.SubElement(joint_el, "axis", {"xyz":(' '.join(list(map(str,_joint["axis"]))))})
+    
+        xmlFile = open(self.robot_path + "/model.urdf", "w")
+        document = md.parseString(Et.tostring(root, 'utf-8'))
+        document.writexml(
+            xmlFile,
+            encoding = 'utf-8',
+            newl = "\n",
+            indent = "",
+            addindent = "\t"
+        )
 
     def Write_STL(self):
         exportMgr = self.design.exportManager

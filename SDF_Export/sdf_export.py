@@ -2,6 +2,8 @@
 import adsk.core, adsk.fusion, traceback
 import math
 import os
+import xml.etree.ElementTree as Et
+import xml.dom.minidom as md
 
 #4x4の同次変換行列から平行移動vectorを取得する&cmをmに変換
 def get_vector(matrix):
@@ -82,7 +84,7 @@ class SDF():
         self.joint_type_list = [ 'fixed', 'revolute', 'prismatic', 'Cylinderical','PinSlot', 'Planner', 'Ball']
         self.occurrence_list = self.design.rootComponent.occurrences
         self.joint_list = self.design.rootComponent.joints
-        self.Robot_Name = self.design.rootComponent.name
+        self.Robot_Name = self.design.rootComponent.name.replace(' ', '_')
         self.Link_List = []
         self.Joint_List=[]
         self.base_path = False
@@ -159,69 +161,72 @@ class SDF():
         #os.mkdir(_robot_path) # todo ファイルがあるか確認する
         os.makedirs(self.robot_path, exist_ok=True)#絶対パスでないとだめ?
 
-        with open(self.robot_path + "/model.sdf", mode="w") as f:
-            f.write("<?xml version='1.0'?>\n")
-            f.write("<sdf version='1.6'>\n")
-            f.write("<model name='" + self.Robot_Name + "'>\n")
-            f.write("<pose>0 0 0 0 0 0</pose>\n") #todo 初期位置や姿勢を引数で変更できるように
+        root = Et.Element("sdf", {"version":"1.6"})
+        model_el = Et.SubElement(root, "model", {"name":self.Robot_Name})
+        model_pose_el = Et.SubElement(model_el, "pose")
+        model_pose_el.text = "0 0 0 0 0 0"
 
-        #linkデータの書き込み
-        with open(self.robot_path +"/model.sdf", mode="a") as f:
-            for _link in self.Link_List:
-                f.write("<link name='" + _link["name"] + "'>\n")
+        for _link in self.Link_List:
+            link_el = Et.SubElement(model_el, "link", {"name": _link["name"]})
 
-                f.write("<pose>" + (' '.join(list(map(str,_link["pose"])) )) + "</pose>\n")
+            link_pose_el = Et.SubElement(link_el, "pose")
+            link_pose_el.text = (' '.join(list(map(str,_link["pose"])) ))
+            
+            link_inertial_el = Et.SubElement(link_el, "inertial")
+            inertial_mass_el = Et.SubElement(link_inertial_el, "mass")
+            inertial_mass_el.text = str(_link["mass"])
+            inertial_pose_el = Et.SubElement(link_inertial_el, "pose")
+            inertial_pose_el.text = (' '.join(list(map(str,_link["com"])) )) 
+            inertial_inertia_el = Et.SubElement(link_inertial_el, "inertia")
+            inertia_ixx_el = Et.SubElement(inertial_inertia_el, "ixx")
+            inertia_ixx_el.text = str(_link["inertia"][0]) 
+            inertia_ixy_el = Et.SubElement(inertial_inertia_el, "ixy")
+            inertia_ixy_el.text = str(_link["inertia"][1]) 
+            inertia_ixz_el = Et.SubElement(inertial_inertia_el, "ixz")
+            inertia_ixz_el.text = str(_link["inertia"][2]) 
+            inertia_iyy_el = Et.SubElement(inertial_inertia_el, "iyy")
+            inertia_iyy_el.text = str(_link["inertia"][3]) 
+            inertia_iyz_el = Et.SubElement(inertial_inertia_el, "iyz")
+            inertia_iyz_el.text = str(_link["inertia"][4]) 
+            inertia_izz_el = Et.SubElement(inertial_inertia_el, "izz")
+            inertia_izz_el.text = str(_link["inertia"][5]) 
 
-                f.write("<inertial>\n")
-                f.write("<mass>" + str(_link["mass"]) + "</mass>\n")
-                f.write("<pose>" + (' '.join(list(map(str,_link["com"])) )) + "</pose>\n")
-                f.write("<inertia>\n")
-                f.write("<ixx>" + str(_link["inertia"][0]) + "</ixx>\n")
-                f.write("<ixy>" + str(_link["inertia"][1]) + "</ixy>\n")
-                f.write("<ixz>" + str(_link["inertia"][2]) + "</ixz>\n")
-                f.write("<iyy>" + str(_link["inertia"][3]) + "</iyy>\n")
-                f.write("<iyz>" + str(_link["inertia"][4]) + "</iyz>\n")
-                f.write("<izz>" + str(_link["inertia"][5]) + "</izz>\n")
-                f.write("</inertia>\n")
-                f.write("</inertial>\n")
+            link_collision_el = Et.SubElement(link_el, "collision", {"name":_link["name"] + "_collision"})
+            collision_geometry_el = Et.SubElement(link_collision_el, "geometry")
+            collision_geometry_mesh_el = Et.SubElement(collision_geometry_el, "mesh")
+            collision_mesh_uri_el = Et.SubElement(collision_geometry_mesh_el, "uri")
+            collision_mesh_uri_el.text = "model://" + self.Robot_Name + "/meshes/" + _link["name"].split(":")[0] + ".stl"
 
-                f.write("<collision name='" + _link["name"] + "_collision'>\n" )
-                f.write("<geometry>\n")
-                f.write("<mesh>\n")
-                f.write("<uri>model://" + self.Robot_Name + "/meshes/" + _link["name"].split(":")[0] + ".stl" + "</uri>")
-                f.write("</mesh>\n")
-                f.write("</geometry>\n")
-                f.write("</collision>\n")
+            link_visual_el = Et.SubElement(link_el, "visual" ,{"name":_link["name"] + "_visual"})
+            visual_geometry_el = Et.SubElement(link_visual_el, "geometry")
+            visual_geometry_mesh_el = Et.SubElement(visual_geometry_el, "mesh")
+            visual_mesh_uri_el = Et.SubElement(visual_geometry_mesh_el, "uri")
+            visual_mesh_uri_el.text = "model://" + self.Robot_Name + "/meshes/" + _link["name"].split(":")[0] + ".stl"
 
-                f.write("<visual name='" + _link["name"] + "_visual'>\n" )
-                f.write("<geometry>\n")
-                f.write("<mesh>\n")
-                f.write("<uri>model://" + self.Robot_Name + "/meshes/" + _link["name"].split(":")[0] + ".stl" + "</uri>") #todo 名前の:を回避する
-                f.write("</mesh>\n")
-                f.write("</geometry>\n")
-                f.write("</visual>\n")
 
-                f.write("</link>\n")
+        for _joint in self.Joint_List:
+            joint_el = Et.SubElement(root, "joint", {"type":"revolute", "name":_joint["name"]})
+
+            joint_pose_el = Et.SubElement(joint_el, "pose")
+            joint_pose_el.text = (' '.join(list(map(str,_joint["pose"])))) 
+            joint_child_el = Et.SubElement(joint_el, "child")
+            joint_child_el.text =_joint["child"] 
+            joint_parent_el = Et.SubElement(joint_el, "parent")
+            joint_parent_el.text = _joint["parent"]
+            joint_axis_el = Et.SubElement(joint_el, "axis")
+            joint_axis_xyz_el = Et.SubElement(joint_axis_el, "xyz")
+            joint_axis_xyz_el.text = (' '.join(list(map(str,_joint["axis"]))))
         
-        #jointデータの書き込み
-        with open(self.robot_path +"/model.sdf", mode="a") as f:
-            for _joint in self.Joint_List:
-                f.write("<joint type='revolute' name='" + _joint["name"] + "'>\n") #todo 複数のジョイントタイプに対応
-                f.write("<pose>" + (' '.join(list(map(str,_joint["pose"])) )) + "</pose>\n")
 
-                f.write("<child>" + _joint["child"] + "</child>\n")
-                f.write("<parent>" + _joint["parent"] + "</parent>\n")
-
-                f.write("<axis>\n")
-                f.write("<xyz>" + (' '.join(list(map(str,_joint["axis"])))) + "</xyz>\n")
-                f.write("</axis>\n")
-
-                f.write("</joint>\n")
-
-        with open(self.robot_path +"/model.sdf", mode="a") as f:
-            f.write("</model>\n")
-            f.write("</sdf>\n")
-
+        xmlFile = open(self.robot_path + "/model.sdf", "w")
+        document = md.parseString(Et.tostring(root, 'utf-8'))
+        document.writexml(
+            xmlFile,
+            encoding = 'utf-8',
+            newl = "\n",
+            indent = "",
+            addindent = "\t"
+        )
 
     def Write_STL(self):
         exportMgr = self.design.exportManager
