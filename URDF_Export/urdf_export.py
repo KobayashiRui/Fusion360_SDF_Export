@@ -100,7 +100,7 @@ class URDF():
             _link_buf = {}
             _occurrence = self.occurrence_list.item(i)
 
-            _link_buf["name"] = _occurrence.name.replace(' ', '_') #リンクの名前の取得
+            _link_buf["name"] = _occurrence.name.replace(' ', '_') #リンクの名前の取得 (空白を_に)
 
             #4*4の変換行列の取得
             _link_matrix = _occurrence.transform.asArray()
@@ -138,14 +138,15 @@ class URDF():
 
             #回転関節
             if self.joint_type_list[_joint.jointMotion.jointType] == "revolute":
+
                 #TODO 名前の部分の処理を改善する
                 _joint_buf["name"] = "rev" + str(i)
 
                 #TODO 制限が設定されている => revolute, 設定されていない => continuous
                 _joint_buf["type"] = "continuous"
                 #_joint_buf["type"] = "revolute"
-                _joint_buf["child"] = _joint.occurrenceOne.fullPathName.split("+")[0]
-                _joint_buf["parent"] = _joint.occurrenceTwo.fullPathName.split("+")[0]
+                _joint_buf["child"] = _joint.occurrenceOne.fullPathName.split("+")[0].replace(' ', '_')
+                _joint_buf["parent"] = _joint.occurrenceTwo.fullPathName.split("+")[0].replace(' ', '_')
 
                 #parentのorigin_posを取得
                 _parent_origin_pos = self.Link_List[_joint_buf["parent"]]["origin_pos"]
@@ -193,8 +194,6 @@ class URDF():
         self.Get_Link_Data()
         self.Get_Joint_Data()
         self.Set_Link_Pose_Data()
-        #ui.messageBox(str(self.Link_List))
-        #ui.messageBox(str(self.Joint_List))
 
 
     def Write_URDF(self):

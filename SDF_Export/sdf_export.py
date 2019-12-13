@@ -77,6 +77,7 @@ def extend_xyz_rpy(xyz,rpy):
     return [xyz[0],xyz[1],xyz[2],rpy[0],rpy[1],rpy[2]]
 
 
+#TODO Link_List & Joint_List→辞書型にする
 class SDF():
     def __init__(self,app):#rootComp.occurrences,rootComp.joints
         self.ui  = app.userInterface
