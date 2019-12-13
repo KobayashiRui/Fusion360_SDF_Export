@@ -95,7 +95,7 @@ class SDF():
             _link_buf = {}
             _occurrence = self.occurrence_list.item(i)
 
-            _link_buf["name"] = _occurrence.name #リンクの名前の取得
+            _link_buf["name"] = _occurrence.name.replace(' ', '_') #リンクの名前の取得
 
             #4*4の変換行列の取得
             _link_matrix = _occurrence.transform.asArray()
@@ -135,8 +135,8 @@ class SDF():
             #回転関節
             if self.joint_type_list[_joint.jointMotion.jointType] == "revolute":
                 _joint_buf["name"] = "rev" + str(i)
-                _joint_buf["child"] = _joint.occurrenceOne.fullPathName.split("+")[0]
-                _joint_buf["parent"] = _joint.occurrenceTwo.fullPathName.split("+")[0]
+                _joint_buf["child"] = _joint.occurrenceOne.fullPathName.split("+")[0].replace(' ', '_')
+                _joint_buf["parent"] = _joint.occurrenceTwo.fullPathName.split("+")[0].replace(' ', '_')
 
                 #_child_link_matrix = self.Search_Child(_joint_buf["child"])
                 _child_link_matrix = self.Link_List[_joint_buf["child"]]["link_matrix"]
@@ -202,13 +202,13 @@ class SDF():
             collision_geometry_el = Et.SubElement(link_collision_el, "geometry")
             collision_geometry_mesh_el = Et.SubElement(collision_geometry_el, "mesh")
             collision_mesh_uri_el = Et.SubElement(collision_geometry_mesh_el, "uri")
-            collision_mesh_uri_el.text = "model://" + self.Robot_Name + "/meshes/" + _link["name"].split(":")[0] + ".stl"
+            collision_mesh_uri_el.text = "model://" + self.Robot_Name + "/meshes/" + _link["name"].split(":")[0].replace(' ', '_') + ".stl"
 
             link_visual_el = Et.SubElement(link_el, "visual" ,{"name":_link["name"] + "_visual"})
             visual_geometry_el = Et.SubElement(link_visual_el, "geometry")
             visual_geometry_mesh_el = Et.SubElement(visual_geometry_el, "mesh")
             visual_mesh_uri_el = Et.SubElement(visual_geometry_mesh_el, "uri")
-            visual_mesh_uri_el.text = "model://" + self.Robot_Name + "/meshes/" + _link["name"].split(":")[0] + ".stl"
+            visual_mesh_uri_el.text = "model://" + self.Robot_Name + "/meshes/" + _link["name"].split(":")[0].replace(' ', '_') + ".stl"
 
 
         for _joint in self.Joint_List.values():
@@ -242,7 +242,7 @@ class SDF():
         for i in range(self.occurrence_list.count):
             # create stl exportOptions
             #todo すでに作成したstlファイルは飛ばす
-            stlExportOptions = exportMgr.createSTLExportOptions(self.occurrence_list.item(i), _stl_path + "/" + self.occurrence_list.item(i).name.split(":")[0])
+            stlExportOptions = exportMgr.createSTLExportOptions(self.occurrence_list.item(i), _stl_path + "/" + self.occurrence_list.item(i).name.split(":")[0].replace(' ', '_'))
             stlExportOptions.sendToPrintUtility = False
             stlExportOptions.isBinaryFormat = True
             # options are .MeshRefinementLow .MeshRefinementMedium .MeshRefinementHigh
