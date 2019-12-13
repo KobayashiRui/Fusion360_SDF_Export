@@ -205,7 +205,7 @@ class SDF():
 
 
         for _joint in self.Joint_List:
-            joint_el = Et.SubElement(root, "joint", {"type":"revolute", "name":_joint["name"]})
+            joint_el = Et.SubElement(model_el, "joint", {"type":"revolute", "name":_joint["name"]})
 
             joint_pose_el = Et.SubElement(joint_el, "pose")
             joint_pose_el.text = (' '.join(list(map(str,_joint["pose"])))) 
