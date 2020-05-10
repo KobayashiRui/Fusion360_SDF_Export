@@ -216,13 +216,6 @@ class URDF():
 
 
     def Write_URDF(self):
-        retVals = ui.inputBox('Your Package Name', 'Package Name Input', "")
-        #バツを選択すると第二要素がTrueになって返ってくる
-        #retVals[0]はデフォルトの値になる
-        #retVals[1]はOKをクリックしたらFalse, バツを押したらTrue
-
-        _package_name = retVals[0]
-
         self.robot_path = self.base_path + "/" + self.Robot_Name #todo このスクリプトファイルまでの絶対パスを取得する
         #os.mkdir(_robot_path) # todo ファイルがあるか確認する
         os.makedirs(self.robot_path, exist_ok=True)#絶対パスでないとだめ?
@@ -242,12 +235,12 @@ class URDF():
             collision_el = Et.SubElement(link_el, "collision", {"name":_link["name"]+"_collision"})
             collision_origin_el = Et.SubElement(collision_el, "origin", {"rpy":(' '.join(list(map(str,_link["pose"][3:])))), "xyz":(' '.join(list(map(str,_link["pose"][:3]))))})
             collision_geometry_el = Et.SubElement(collision_el, "geometry")
-            collision_geometry_mesh_el = Et.SubElement(collision_geometry_el, "mesh", {"filename":"package://" + _package_name + "/meshes/" + _link["name"].split(":")[0].replace(' ', '_') + ".stl", "scale":"1.0 1.0 1.0"})
+            collision_geometry_mesh_el = Et.SubElement(collision_geometry_el, "mesh", {"filename":"./meshes/" + _link["name"].split(":")[0].replace(' ', '_') + ".stl", "scale":"1.0 1.0 1.0"})
 
             visual_el = Et.SubElement(link_el, "visual", {"name":_link["name"] + "_visual"})
             visual_origin_el = Et.SubElement(visual_el, "origin", {"rpy":(' '.join(list(map(str,_link["pose"][3:])))), "xyz":(' '.join(list(map(str,_link["pose"][:3]))))})
             visual_geometry_el = Et.SubElement(visual_el, "geometry")
-            visual_geometry_mesh_el = Et.SubElement(visual_geometry_el, "mesh", {"filename":"package://" + _package_name + "/meshes/" + _link["name"].split(":")[0].replace(' ', '_') + ".stl", "scale":"1.0 1.0 1.0"})
+            visual_geometry_mesh_el = Et.SubElement(visual_geometry_el, "mesh", {"filename":"./meshes/" + _link["name"].split(":")[0].replace(' ', '_') + ".stl", "scale":"1.0 1.0 1.0"})
         
         #Make Joint XML
         for _joint in self.Joint_List.values(): 
